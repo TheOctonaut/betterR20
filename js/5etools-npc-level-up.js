@@ -2501,7 +2501,7 @@ function makeStartingStateHtml (store, sidekickType, targetLevel) {
 			`);
 
 			function getType () { return $dialog.find("input[name=sidekickType]:checked").val() || "expert"; }
-			function getLevel () { return storedLevel(store) || hitDiceToSidekickLevel(store) || 1; }
+			function getLevel () { return getSelectedLevel($dialog, levelOptions); }
 		function getHpMode () { return $dialog.find('input[name=hpMode]:checked').val() || "average"; }
 		function getHpRollTotal () {
 			const v = Number($dialog.find('.b20-hp-roll-input').val());
