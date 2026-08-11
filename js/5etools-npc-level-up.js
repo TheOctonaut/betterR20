@@ -656,8 +656,8 @@ function d20plusNpcLevelUp () {
 				? `TODO: ${feature.name}`
 				: feature.name;
 			const description = feature.isTodo
-				? `${feature.description}\n\n(Delete this trait once resolved — added by betterR20 sidekick level-up, ${feature.source})`
-				: `${feature.description}\n\n(Added by betterR20 sidekick level-up, ${feature.source})`;
+				? `${feature.description}\n\n(${feature.source}; B20)`
+				: `${feature.description}\n\n(${feature.source}; B20)`;
 
 			integrants[id] = {
 				...base,
@@ -846,7 +846,7 @@ function d20plusNpcLevelUp () {
 		integrants[id] = {
 			...base,
 			name: "Bonus Proficiencies",
-			description: `${getBonusProficiencyFeatureDescription(sidekickType, selections)}\n\n(Added by betterR20 sidekick level-up, recorded from level 1 sidekick feature choices.)`,
+			description: `${getBonusProficiencyFeatureDescription(sidekickType, selections)}\n\n(B20)`,
 			source: "Species",
 			cascades: {},
 			relations: {},
@@ -910,7 +910,7 @@ function d20plusNpcLevelUp () {
 		if (sidekickType !== "expert") return 0;
 		const helpfulFeatures = getFeaturesByName(sidekickType, featureFromLevel, targetSidekickLevel, "Helpful");
 		if (!helpfulFeatures.length) return 0;
-		return ensureBonusActionFromRepo(store, "Help", "(Added by betterR20 sidekick Helpful automation.)");
+		return ensureBonusActionFromRepo(store, "Help", "(B20)");
 	}
 
 	/**
@@ -922,7 +922,7 @@ function d20plusNpcLevelUp () {
 		const cunningActionFeatures = getFeaturesByName(sidekickType, featureFromLevel, targetSidekickLevel, "Cunning Action");
 		if (!cunningActionFeatures.length) return 0;
 		return ["Dash", "Disengage", "Hide"]
-			.map(name => ensureBonusActionFromRepo(store, name, "(Added by betterR20 sidekick Cunning Action automation.)"))
+			.map(name => ensureBonusActionFromRepo(store, name, "(B20)"))
 			reduce((sum, count) => sum + count, 0);
 	}
 
@@ -1237,7 +1237,7 @@ function d20plusNpcLevelUp () {
 			if (instance && instance.mode === "feat" && instance.feat) {
 				const feat = instance.feat;
 				name = `Feat: ${feat.name}`;
-				description = `${feat.text}\n\n(Chosen instead of the level ${f.level} Ability Score Improvement. Feat text only — apply any mechanical effects manually. Added by betterR20 sidekick level-up, ${feat.source}${feat.page ? ` p.${feat.page}` : ""})`;
+				description = `${feat.text}\n\n(Chosen instead of the level ${f.level} Ability Score Improvement. Feat text only — apply any mechanical effects manually. B20)`;
 			} else {
 				let choiceDesc;
 				if (instance) {
@@ -1258,7 +1258,7 @@ function d20plusNpcLevelUp () {
 						choiceOffset += secondChoice ? 2 : 1;
 					}
 				}
-				description = `${f.description}\n\nChosen: ${choiceDesc}\n\n(Added by betterR20 sidekick level-up, ${f.source})`;
+				description = `${f.description}\n\nChosen: ${choiceDesc}\n\n(B20)`;
 			}
 			const { id, base } = d20plus.store2024.makeIntegrantBase("Features", pos++);
 			integrants[id] = {
@@ -1381,7 +1381,7 @@ function d20plusNpcLevelUp () {
 		store.integrants.integrants[id] = {
 			...base,
 			name: "Expertise",
-			description: `${features[0].description}\n\nChosen skills: ${skills.join(", ")}\n\n(Added by betterR20 sidekick level-up, ${features[0].source})`,
+			description: `${features[0].description}\n\nChosen skills: ${skills.join(", ")}\n\n(B20)`,
 			source: "Species",
 			cascades: {},
 			relations: {},
@@ -1435,7 +1435,7 @@ function d20plusNpcLevelUp () {
 		store.integrants.integrants[id] = {
 			...base,
 			name: "Sharp Mind",
-			description: `${features[0].description}\n\nChosen saving throw: ${save}\n\n(Added by betterR20 sidekick level-up, ${features[0].source})`,
+			description: `${features[0].description}\n\nChosen saving throw: ${save}\n\n(B20)`,
 			source: "Species",
 			cascades: {},
 			relations: {},
@@ -1488,7 +1488,7 @@ function d20plusNpcLevelUp () {
 		store.integrants.integrants[id] = {
 			...base,
 			name: "Empowered Spells",
-			description: `${features[0].description}\n\nChosen school: ${school}\n\n(Applied automatically by betterR20 to the sidekick's ${school} spell damage/healing rolls, including spells learned later. Added by betterR20 sidekick level-up, ${features[0].source})`,
+			description: `${features[0].description}\n\nChosen school: ${school}\n\n(Applied automatically to the sidekick's ${school} spell damage/healing rolls, including spells learned later. B20)`,
 			source: "Species",
 			cascades: {},
 			relations: {},
@@ -1977,7 +1977,7 @@ function d20plusNpcLevelUp () {
 		store.integrants.integrants[id] = {
 			...base,
 			name: "Spellcasting Advancement",
-			description: `${lines.join("\n")}\n\n(Added by betterR20 sidekick level-up, TCE p.144)`,
+			description: `${lines.join("\n")}\n\n(B20)`,
 			source: "Species",
 			cascades: {},
 			relations: {},
