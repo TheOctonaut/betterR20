@@ -1040,8 +1040,9 @@ function d20plusNpcLevelUp () {
 		const abilityOptions = ASI_ABILITIES.map(ab =>
 			`<option value="${ab}">${ab} (${scores[ab] ?? 10})</option>`
 		).join("");
+		const levelFeats = d20plus.sidekickData.getFeatOptionsForLevel ? d20plus.sidekickData.getFeatOptionsForLevel(asiLevel) : [];
 		const featOptions = [{name: "Ability Score Improvement", source: "betterR20", isAsi: true}]
-			.concat(d20plus.sidekickData.getFeatOptionsForLevel ? d20plus.sidekickData.getFeatOptionsForLevel(asiLevel) : []);
+			.concat(levelFeats.filter(f => f.name !== "Ability Score Improvement"));
 		const featOptionsHtml = featOptions
 			.map(f => `<option value="${f.name}|${f.source}">${f.name}</option>`)
 			.join("");
@@ -1102,6 +1103,7 @@ function d20plusNpcLevelUp () {
 		`);
 		$container.find("select[name^='asiFeat-']").on("change", function () {
 			const $inst = $(this).closest(".b20-asi-instance");
+			updateAsiSelectState($container);
 			updateAsiFeatPreview($inst, $inst.data("asi-index"));
 		});
 		$container.find("input[type=radio]").on("change", function () {
