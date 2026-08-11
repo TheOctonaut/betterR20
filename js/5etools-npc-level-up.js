@@ -467,6 +467,7 @@ function d20plusNpcLevelUp () {
 			: 0;
 		summary.potentCantripsApplied = potentCantripsApplied;
 		summary.helpfulBonusActionApplied = applyHelpfulBonusAction(store, sidekickType, featureFromLevel, targetSidekickLevel);
+		summary.cunningActionBonusActionsApplied = applyCunningActionBonusActions(store, sidekickType, featureFromLevel, targetSidekickLevel);
 
 		// Empowered Spells (spellcaster level 14+): re-applied every level-up so
 		// spells added since the school was chosen are covered too.
@@ -855,6 +856,51 @@ function d20plusNpcLevelUp () {
 		return 1;
 	}
 
+	function getRepoActionDescription (actionName) {
+		try {
+			const data = typeof JSON_DATA !== "undefined" ? JSON_DATA["data2014/actions.json"] : null;
+			const action = data && Array.isArray(data.action)
+				? data.action.find(it => String(it.name || "").toLowerCase() === String(actionName || "").toLowerCase())
+				: null;
+			if (!action || !Array.isArray(action.entries)) return "";
+			return d20plus.sidekickData.entriesToText(action.entries).trim();
+		} catch (e) {
+			console.warn(`betterR20: failed to load action text for ${actionName}`, e);
+			return "";
+		}
+	}
+
+	function ensureBonusActionFromRepo (store, name, descriptionSuffix) {
+		if (!store.integrants) store.integrants = { integrants: {} };
+		if (!store.integrants.integrants) store.integrants.integrants = {};
+		const ints = store.integrants.integrants;
+		const exists = Object.values(ints).some(i =>
+			i
+			&& i.type === "Action"
+			&& i.actionType === "Bonus Action"
+			&& String(i.name || "").toLowerCase() === String(name || "").toLowerCase()
+		);
+		if (exists) return 0;
+		const description = getRepoActionDescription(name);
+		if (!description) return 0;
+		const pos = d20plus.store2024.getNextArrayPos(store);
+		const { id, base } = d20plus.store2024.makeIntegrantBase("Action", pos);
+		ints[id] = {
+			...base,
+			name,
+			actionType: "Bonus Action",
+			displayAsAttack: false,
+			description: `${description}\n\n${descriptionSuffix}`,
+			rechargeType: "None",
+			range: "",
+			target: "",
+			conditions: "",
+			cascades: {},
+			relations: {},
+		};
+		return 1;
+	}
+
 	/**
 	 * Expert Helpful (L1): create a Bonus Action "Help" action entry so the feature
 	 * is actually usable on the sheet, not just a descriptive trait.
@@ -864,32 +910,20 @@ function d20plusNpcLevelUp () {
 		if (sidekickType !== "expert") return 0;
 		const helpfulFeatures = getFeaturesByName(sidekickType, featureFromLevel, targetSidekickLevel, "Helpful");
 		if (!helpfulFeatures.length) return 0;
-		if (!store.integrants) store.integrants = { integrants: {} };
-		if (!store.integrants.integrants) store.integrants.integrants = {};
-		const ints = store.integrants.integrants;
-		const exists = Object.values(ints).some(i =>
-			i
-			&& i.type === "Action"
-			&& (i.actionType === "Bonus Action")
-			&& String(i.name || "").toLowerCase() === "help"
-		);
-		if (exists) return 0;
-		const pos = d20plus.store2024.getNextArrayPos(store);
-		const { id, base } = d20plus.store2024.makeIntegrantBase("Action", pos);
-		ints[id] = {
-			...base,
-			name: "Help",
-			actionType: "Bonus Action",
-			displayAsAttack: false,
-			description: "You can lend your aid to another creature in the completion of a task. When you take the Help action, the creature you aid gains advantage on the next ability check it makes to perform the task you are helping with, provided that it makes the check before the start of your next turn.\n\nAlternatively, you can aid a friendly creature in attacking a creature within 5 feet of you. You feint, distract the target, or in some other way team up to make your ally's attack more effective. If your ally attacks the target before your next turn, the first attack roll is made with advantage.\n\n(Added by betterR20 sidekick Helpful automation.)",
-			rechargeType: "None",
-			range: "",
-			target: "",
-			conditions: "",
-			cascades: {},
-			relations: {},
-		};
-		return 1;
+		return ensureBonusActionFromRepo(store, "Help", "(Added by betterR20 sidekick Helpful automation.)");
+	}
+
+	/**
+	 * Expert Cunning Action (L2): create Bonus Action entries for Dash, Disengage,
+	 * and Hide using the repo-bundled action text.
+	 */
+	function applyCunningActionBonusActions (store, sidekickType, featureFromLevel, targetSidekickLevel) {
+		if (sidekickType !== "expert") return 0;
+		const cunningActionFeatures = getFeaturesByName(sidekickType, featureFromLevel, targetSidekickLevel, "Cunning Action");
+		if (!cunningActionFeatures.length) return 0;
+		return ["Dash", "Disengage", "Hide"]
+			.map(name => ensureBonusActionFromRepo(store, name, "(Added by betterR20 sidekick Cunning Action automation.)"))
+			reduce((sum, count) => sum + count, 0);
 	}
 
 	/** Build a sidekick copy name, stripping any previous sidekick/level suffixes. */
@@ -2330,8 +2364,7 @@ function makeStartingStateHtml (store, sidekickType, targetLevel) {
 		const featureItemsHtml = features.length
 			? `<ul class="b20-preview-feature-list">${
 				features.map(f => {
-					const isTodo = f.isTodo && !isDialogAutomatedFeature(f);
-					return `<li><span style="color:${isTodo ? "#c0392b" : "#27ae60"};font-weight:bold">${isTodo ? "TODO" : "AUTO"} ${f.name}</span> <span style="color:#888">(lv${f.level})</span><br><span style="font-size:0.9em">${f.description.slice(0, 120)}${f.description.length > 120 ? "…" : ""}</span></li>`;
+					return `<li><strong>${f.name}</strong> <span style="color:#888">(lv${f.level})</span><br><span style="font-size:0.9em">${f.description.slice(0, 120)}${f.description.length > 120 ? "…" : ""}</span></li>`;
 				}).join("")
 			}</ul>`
 			: `<p style="color:#64748b;margin:0">No features for this type/level combination.</p>`;
@@ -2360,10 +2393,7 @@ function makeStartingStateHtml (store, sidekickType, targetLevel) {
 			const features = d20plus.sidekickData.getFeaturesGained(sidekickType, fromLevel, toLevel);
 			if (features.length) {
 				const featureItems = features.map(f => {
-					const tag = (f.isTodo && !isDialogAutomatedFeature(f))
-						? `<span style="color:#c0392b;font-size:0.85em;font-weight:bold">TODO</span>`
-						: `<span style="color:#27ae60;font-size:0.85em;font-weight:bold">AUTO</span>`;
-					return `<li>${tag} <strong>${f.name}</strong> <span style="color:#888;font-size:0.88em">(lv${f.level})</span><br><span style="color:#555;font-size:0.88em">${f.description.substring(0, 120)}${f.description.length > 120 ? "…" : ""}</span></li>`;
+					return `<li><strong>${f.name}</strong> <span style="color:#888;font-size:0.88em">(lv${f.level})</span><br><span style="color:#555;font-size:0.88em">${f.description.substring(0, 120)}${f.description.length > 120 ? "…" : ""}</span></li>`;
 				}).join("");
 				featureItemsHtml = `<ul class="b20-preview-feature-list">${featureItems}</ul>`;
 			}
@@ -2775,6 +2805,7 @@ function makeStartingStateHtml (store, sidekickType, targetLevel) {
 			const attackerMsg = summary.attackerBonusApplied ? `\nAttacker +2 applied to ${summary.attackerBonusApplied} attack(s)` : "";
 			const cantripMsg = summary.potentCantripsApplied ? `\nPotent Cantrips applied to ${summary.potentCantripsApplied} cantrip damage roll(s)` : "";
 			const helpfulMsg = summary.helpfulBonusActionApplied ? `\nHelpful action added as Bonus Action` : "";
+			const cunningMsg = summary.cunningActionBonusActionsApplied ? `\nCunning Action bonus actions added: ${summary.cunningActionBonusActionsApplied}` : "";
 			const empoweredMsg = summary.empoweredSchool ? `\nEmpowered Spells (${summary.empoweredSchool}) applied to ${summary.empoweredSpellsApplied || 0} damage/healing roll(s)` : "";
 			const spellMsg = summary.spellsAdded ? `\nSpells added: ${summary.spellsAdded}${summary.spellRemoved ? ` (replaced ${summary.spellRemoved})` : ""}` : "";
 			const spellFailMsg = summary.spellsFailed && summary.spellsFailed.length ? `\nSpells FAILED to import (add manually): ${summary.spellsFailed.join(", ")}` : "";
@@ -2784,7 +2815,7 @@ function makeStartingStateHtml (store, sidekickType, targetLevel) {
 
 Starting level: ${summary.newLevel}
 HP max: ${summary.newHpMax}
-Roll formula: ${summary.newRollHP}${featMsg}${profMsg}${asiMsg}${featPickMsg}${expertiseMsg}${sharpMindMsg}${attackerMsg}${helpfulMsg}${cantripMsg}${empoweredMsg}${spellMsg}${spellFailMsg}${slotMsg}`);
+Roll formula: ${summary.newRollHP}${featMsg}${profMsg}${asiMsg}${featPickMsg}${expertiseMsg}${sharpMindMsg}${attackerMsg}${helpfulMsg}${cunningMsg}${cantripMsg}${empoweredMsg}${spellMsg}${spellFailMsg}${slotMsg}`);
 			} else {
 				alert(`Levelled up "${newChar.get("name")}".
 
